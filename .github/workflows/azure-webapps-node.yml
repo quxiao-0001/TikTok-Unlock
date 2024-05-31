@@ -1,0 +1,78 @@
+# 当提交被推送到默认版本时，此工作流将构建变成 node.js 应用程序推送到 Azure Web App。
+#
+# 假设您已经创建了目标 Azure App Service Web 应用程序。
+# 有关说明，请参阅 https://docs.microsoft.com/en-us/azure/app-service/quickstart-nodejs?tabs=linux&pivots=development-environment-cli
+#
+#要配置此进程：
+#
+# 1. 下载 Azure Web 应用程序的发布配置文件。下载自 Azure 门户中的 Web 应用程序的概述页面下载此文件。
+# 更多信息请访问：https://docs.microsoft.com/en-us/azure/app-service/deploy-github-actions?tabs=applevel#generate-deployment-credentials
+#
+# 2. 在您所在的档案中创建单个AZURE_WEBAPP_PUBLISH_PROFILE 的机密，并将发布配置文件的内容粘贴作为机密信息的选择。
+#有关获取发布配置文件的说明，请参阅：https://docs.microsoft.com/azure/app-service/deploy-github-actions#configure-the-github-secret
+#
+# 3. 更改 AZURE_WEBAPP_NAME 的值。（可选）更改下面的 AZURE_WEBAPP_PACKAGE_PATH 和 NODE_VERSION 环境变量。
+#
+#有关 Azure 的 GitHub Actions 的更多信息：https://github.com/Azure/Actions
+# 有关 Azure Web Apps Deploy 操作的更多信息：https://github.com/Azure/webapps-deploy
+#有关开始使用 GitHub Action 工作流部署到 ​​Azure 的更多示例：https://github.com/Azure/actions-workflow-samples
+
+在：
+  推：
+    分支：[ “掌握” ]
+  工作流调度：
+
+环境：
+  AZURE_WEBAPP_NAME : your-app-name # 重点应用程序名称
+  AZURE_WEBAPP_PACKAGE_PATH：'。'  #系统生成Web应用路径，默认为仓库根目录
+  NODE_VERSION: '14.x' #其设置要使用的 MySQL 版本# 其设置要使用的 MySQL 版本
+
+权限：
+  内容：已读
+
+工作：
+  建造：
+    运行于：ubuntu-latest
+    脚步：
+    -     - 使用：actions/checkout@v4
+
+    -     - 名称：设置Node.js
+      用途：actions/setup-node@v3
+      和：
+        节点版本：${{ env.NODE_VERSION }}{{ env.NODE_VERSION }}
+        缓存：'npm''npm'
+
+    -     - 名称：npm install、build 和 test
+      运行：|
+        npm 安装
+        npm 运行 build --if-present
+        npm 运行测试 --if-present
+
+    -     - 名称：上传部署作业的工件
+      用途：actions/upload-artifact@v3
+      和：
+        名称：node-app
+        小路：。
+
+  部署：
+    权限：
+      内容：无
+    运行于：ubuntu-latest
+    需求：建造
+    环境：
+      name: 'Development'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+
+    steps:
+    - name: Download artifact from build job
+      uses: actions/download-artifact@v3
+      with:
+        name: node-app
+
+    - name: 'Deploy to Azure WebApp'
+      id: deploy-to-webapp
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_NAME }}
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+        package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
